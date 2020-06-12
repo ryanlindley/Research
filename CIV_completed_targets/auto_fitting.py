@@ -101,11 +101,13 @@ def model(p0, feat, wl, wl1, wl2, f1, f2, gamma1, gamma2, lsf):
     m = convolve(m, lsf)
     return m
     
-def fitting(p0, feat, wl, wl1, wl2, f1, f2, gamma1, gamma2, lsf, fn, fne):
+def fitting(p0, feat, wl, wl1, wl2, f1, f2, gamma1, gamma2, lsf, fn, fne, limits):
     m = model(p0, feat, wl, wl1, wl2, f1, f2, gamma1, gamma2, lsf)
     chi = (fn - m) / fne
-    chi1 = chi[(wl > 1547) & (wl < 1550)]
-    chi2 = chi[(wl > 1550) & (wl < 1553)]
+#    chi1 = chi[(wl > 1547) & (wl < 1550)]
+#    chi2 = chi[(wl > 1550) & (wl < 1553)]
+    chi1 = chi[(wl > limits[0]) & (wl < 1550)]
+    chi2 = chi[(wl > 1550) & (wl < limits[1])]
     return np.append(chi1, chi2)
 
 def convolve(model, lsf):
@@ -141,7 +143,7 @@ def Voigt(x, x0, sigma, gamma):
 
     return (special.wofz(z)).real/abs(sigma)/(2*np.pi)**0.5
 
-def plot_model(p0, feat, wl, fn, wl1, wl2, f1, f2, gamma1, gamma2, lsf):
+def plot_model(p0, feat, wl, fn, wl1, wl2, f1, f2, gamma1, gamma2, lsf, limits):
     m = model(p0, feat, wl, wl1, wl2, f1, f2, gamma1, gamma2, lsf)
     plt.step(wl, fn, 'k-', lw=2, where='mid')
     plt.plot(wl, m, 'r--', lw=2)
@@ -169,7 +171,7 @@ def plot_model(p0, feat, wl, fn, wl1, wl2, f1, f2, gamma1, gamma2, lsf):
             m = convolve(m, lsf)
             plt.plot(wl, m, 'y:', lw=2)
     
-    plt.xlim(1547, 1553)
+    plt.xlim(limits[0], limits[1])
     plt.show()
 
 def make_features(p0, feat, wl, wl1, wl2, lsf, gamma1, gamma2):
@@ -218,13 +220,13 @@ def final_data(v_bins, Nv_bins, Nve_bins):
     
     return v_new, Nv_new, Nve_new
 
-def plot_features(wl, wl1, wl2, N1, N2, Ne1, Ne2):
+def plot_features(wl, wl1, wl2, N1, N2, Ne1, Ne2, limits):
     plt.plot(Wave2V(wl, wl1), N1, '-r', label='Strong Feature')
     plt.plot(Wave2V(wl, wl2), N2, '-k', label='Weak Feature')
     plt.plot(Wave2V(wl, wl1), Ne1, '-b', label='Strong Error')
     plt.plot(Wave2V(wl, wl2), Ne2, '-m', label='Weak Error')
     plt.legend()
-    plt.xlim(-300,300)
+    plt.xlim(limits[0], limits[1])
     plt.show()
 
 def remove_regions(strong_flag, weak_flag, wl, wl1, wl2, N1r, N2r, Ne1, Ne2):
@@ -261,12 +263,12 @@ def make_bins(v1, v2, Nv1, Nv2, Nve1, Nve2):
 
 #v_final, Nv_final, Nve_final =  final_data(v_bins, Nv_bins, Nve_bins)
 
-def plot_final_data(wl, wl1, wl2, N1r, N2r, v_final, Nv_final, Nve_final, name):
+def plot_final_data(wl, wl1, wl2, N1r, N2r, v_final, Nv_final, Nve_final, name, limits):
     plt.plot(v_final, Nv_final,'k-', lw=3, label='Combined Nv')
     plt.plot(v_final, Nve_final, 'b:', lw=3, label='Combined Error')
     plt.plot(Wave2V(wl, wl1), N1r, '--m', label='Strong Feature')
     plt.plot(Wave2V(wl, wl2), N2r, '--g', label='Weak Feature')
-    plt.xlim(-300,300)
+    plt.xlim(limits[0], limits[1])
     plt.title(name)
     plt.axhline(0)
     plt.legend()
@@ -294,12 +296,12 @@ def mask_v(wl, w, ranges):
         flag &= np.invert((Wave2V(wl, w) > ranges[2 * i]) & (Wave2V(wl, w) < ranges[2 * i + 1]))
     return flag
         
-def save_final_data_plot(wl, wl1, wl2, N1r, N2r, v_final, Nv_final, Nve_final, name):
+def save_final_data_plot(wl, wl1, wl2, N1r, N2r, v_final, Nv_final, Nve_final, name, limits):
     plt.plot(v_final, Nv_final,'k-', lw=3, label='Combined Nv')
     plt.plot(v_final, Nve_final, 'b:', lw=3, label='Combined Error')
     plt.plot(Wave2V(wl, wl1), N1r, '--m', label='Strong Feature')
     plt.plot(Wave2V(wl, wl2), N2r, '--g', label='Weak Feature')
-    plt.xlim(-300,300)
+    plt.xlim(limits[0], limits[1])
     plt.title(name)
     plt.axhline(0)
     plt.legend()

@@ -91,12 +91,12 @@ def model(p0, feat, wl, wl1, wl2, f1, f2, gamma1, gamma2, lsf):
             m2 = vline(Wave2V(wl, wl2), [b/1.414, gamma2, N2tau(10**N, wl2, f2), vc, 1])
             m*= m1 * m2
         elif feat[comp_i] == 1:
-            m1 = vline(Wave2V(wl, wl1), [b/1.414, gamma1, N2tau(10**N, wl1, f1), vc, 1])
+            m1 = vline(Wave2V(wl, wl1), [b/1.414,  0.00455, N2tau(10**N, wl1, 0.41641), vc, 1])
             m2 = np.ones(wl.shape)
             m*= m1 * m2
         elif feat[comp_i] == 2:
             m1 = np.ones(wl.shape)
-            m2 = vline(Wave2V(wl, wl2), [b/1.414, gamma2, N2tau(10**N, wl2, f2), vc, 1])
+            m2 = vline(Wave2V(wl, wl2), [b/1.414,  0.00455, N2tau(10**N, wl2, 0.41641), vc, 1])
             m*= m1 * m2
     m = convolve(m, lsf)
     return m
@@ -159,14 +159,14 @@ def plot_model(p0, feat, wl, fn, wl1, wl2, f1, f2, gamma1, gamma2, lsf, limits):
             m = convolve(m, lsf)
             plt.plot(wl, m, 'y:', lw=2)
         elif feat[comp_i] == 1:
-            m1 = vline(Wave2V(wl, wl1), [b/1.414, gamma1, N2tau(10**N, wl1, f1), vc, 1])
+            m1 = vline(Wave2V(wl, wl1), [b/1.414,  0.00455, N2tau(10**N, wl1, 0.41641), vc, 1])
             m2 = np.ones(wl.shape)
             m = m1 * m2
             m = convolve(m, lsf)
             plt.plot(wl, m, 'y:', lw=2)
         elif feat[comp_i] == 2:
             m1 = np.ones(wl.shape)
-            m2 = vline(Wave2V(wl, wl2), [b/1.414, gamma2, N2tau(10**N, wl2, f2), vc, 1])
+            m2 = vline(Wave2V(wl, wl2), [b/1.414, 0.00455, N2tau(10**N, wl2, 0.41641), vc, 1])
             m = m1 * m2
             m = convolve(m, lsf)
             plt.plot(wl, m, 'y:', lw=2)
@@ -183,9 +183,9 @@ def make_features(p0, feat, wl, wl1, wl2, lsf, gamma1, gamma2):
             Ns_tot += 10**(p0[3 * i])*Voigt(Wave2V(wl, wl1), p0[2 + 3*i], p0[1 + 3*i]/np.sqrt(2), gamma1)
             Nw_tot += 10**(p0[3 * i])*Voigt(Wave2V(wl, wl2), p0[2 + 3*i], p0[1 + 3*i]/np.sqrt(2), gamma2)
         elif feat[i] == 1:
-            Ns_tot += 10**(p0[3 * i])*Voigt(Wave2V(wl, wl1), p0[2 + 3*i], p0[1 + 3*i]/np.sqrt(2), gamma1)
+            Ns_tot += 10**(p0[3 * i])*Voigt(Wave2V(wl, wl1), p0[2 + 3*i], p0[1 + 3*i]/np.sqrt(2), 0.00455)
         elif feat[i] == 2:
-            Nw_tot += 10**(p0[3 * i])*Voigt(Wave2V(wl, wl2), p0[2 + 3*i], p0[1 + 3*i]/np.sqrt(2), gamma2)
+            Nw_tot += 10**(p0[3 * i])*Voigt(Wave2V(wl, wl2), p0[2 + 3*i], p0[1 + 3*i]/np.sqrt(2), 0.00455)
     Ns = convolve(Ns_tot, lsf)
     Nw = convolve(Nw_tot, lsf)
     return Ns, Nw

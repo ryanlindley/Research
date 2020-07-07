@@ -18,6 +18,19 @@ def continuum(wl, fl, fe, threshold):
         i += 1
     return wl_out, fl_out, fe_out, ctn_func
     
+def continuum_polyfit(wl, fl, fe, threshold):
+    fl_out, wl_out, fe_out = trim(wl, fl, 2, np.mean(fl), fe)
+    ctn_func = np.poly1d(np.polyfit(wl_out, fl_out, 3))
+    ctn = ctn_func(wl_out)
+    i, fl_prev = 0, fl
+    while(len(fl_prev) != len(fl_out) or i > 20):
+        fl_prev = fl_out
+        fl_out, wl_out, fe_out = trim(wl_out, fl_out, threshold, ctn, fe_out)
+        ctn_func = ctn_func = np.poly1d(np.polyfit(wl_out, fl_out, 3))
+        ctn = ctn_func(wl_out)
+        i += 1
+    return wl_out, fl_out, fe_out, ctn_func
+    
 def plot_continuum(wl, wl_out, fl, fl_out, ctn_given, ctn_func, name, t):
     plt.step(wl, fl, 'g-', lw=2, where='mid', label='Data')
     plt.plot(wl_out, fl_out, 'k-', label='Trimmed Data')
@@ -58,6 +71,22 @@ def Chi_sq(model, data, error):
 def Chi(model, data, error):
     return (data - model) / error
 
+def find_continuum_polyfit(name, wl, fl, fe, ctn, flag):
+    threshold = np.arange(1.2, 2, .1)
+    t = threshold[0]
+    wl_out, fl_out, fe_out, ctn_func = continuum_polyfit(wl[flag], fl[flag], fe[flag], t)
+    chi, chi_mean = find_chi(wl, fl, fe, ctn_func(wl))
+    for th in threshold:
+        wl_1, fl_1, fe_1, ctn_function = continuum_polyfit(wl[flag], fl[flag], fe[flag], th)
+        chi_1, chi_mean_1 = find_chi(wl, fl, fe, ctn_function(wl))
+        if (np.abs(chi_mean_1) < np.abs(chi_mean)):
+            wl_out, fl_out, fe_out, ctn_func = wl_1, fl_1, fe_1, ctn_function
+            t = th
+            chi, chi_mean = chi_1, chi_mean_1
+    plot_continuum(wl, wl_out, fl, fl_out, ctn, ctn_func, name, round(t,1))
+#    plot_chi_histogram(chi, chi_mean)
+    return ctn_func(wl)
+    
 def find_continuum(name, wl, fl, fe, ctn, flag):
     threshold = np.arange(1.2, 2, .1)
     t = threshold[0]
@@ -86,17 +115,19 @@ def model(p0, feat, wl, wl1, wl2, f1, f2, gamma1, gamma2, lsf):
     Ncomp = len(p0)//3
     for comp_i in range(Ncomp):
         N, b, vc = p0[comp_i*3: comp_i*3+3]
+        if np.abs(b) < 10:
+            b = 10
         if feat[comp_i] == 0:
-            m1 = vline(Wave2V(wl, wl1), [b/1.414, gamma1, N2tau(10**N, wl1, f1), vc, 1])
-            m2 = vline(Wave2V(wl, wl2), [b/1.414, gamma2, N2tau(10**N, wl2, f2), vc, 1])
+            m1 = vline(Wave2V(wl, wl1), [np.abs(b/1.414), gamma1, N2tau(10**N, wl1, f1), vc, 1])
+            m2 = vline(Wave2V(wl, wl2), [np.abs(b/1.414), gamma2, N2tau(10**N, wl2, f2), vc, 1])
             m*= m1 * m2
         elif feat[comp_i] == 1:
-            m1 = vline(Wave2V(wl, wl1), [b/1.414,  0.00455, N2tau(10**N, wl1, 0.41641), vc, 1])
+            m1 = vline(Wave2V(wl, wl1), [np.abs(b/1.414),  gamma1, N2tau(10**N, wl1, f1), vc, 1])
             m2 = np.ones(wl.shape)
             m*= m1 * m2
         elif feat[comp_i] == 2:
             m1 = np.ones(wl.shape)
-            m2 = vline(Wave2V(wl, wl2), [b/1.414,  0.00455, N2tau(10**N, wl2, 0.41641), vc, 1])
+            m2 = vline(Wave2V(wl, wl2), [np.abs(b/1.414),  gamma2, N2tau(10**N, wl2, f2), vc, 1])
             m*= m1 * m2
     m = convolve(m, lsf)
     return m
@@ -159,14 +190,14 @@ def plot_model(p0, feat, wl, fn, wl1, wl2, f1, f2, gamma1, gamma2, lsf, limits):
             m = convolve(m, lsf)
             plt.plot(wl, m, 'y:', lw=2)
         elif feat[comp_i] == 1:
-            m1 = vline(Wave2V(wl, wl1), [b/1.414,  0.00455, N2tau(10**N, wl1, 0.41641), vc, 1])
+            m1 = vline(Wave2V(wl, wl1), [b/1.414,  gamma1, N2tau(10**N, wl1, f1), vc, 1])
             m2 = np.ones(wl.shape)
             m = m1 * m2
             m = convolve(m, lsf)
             plt.plot(wl, m, 'y:', lw=2)
         elif feat[comp_i] == 2:
             m1 = np.ones(wl.shape)
-            m2 = vline(Wave2V(wl, wl2), [b/1.414, 0.00455, N2tau(10**N, wl2, 0.41641), vc, 1])
+            m2 = vline(Wave2V(wl, wl2), [b/1.414, gamma2, N2tau(10**N, wl2, f2), vc, 1])
             m = m1 * m2
             m = convolve(m, lsf)
             plt.plot(wl, m, 'y:', lw=2)
@@ -183,9 +214,9 @@ def make_features(p0, feat, wl, wl1, wl2, lsf, gamma1, gamma2):
             Ns_tot += 10**(p0[3 * i])*Voigt(Wave2V(wl, wl1), p0[2 + 3*i], p0[1 + 3*i]/np.sqrt(2), gamma1)
             Nw_tot += 10**(p0[3 * i])*Voigt(Wave2V(wl, wl2), p0[2 + 3*i], p0[1 + 3*i]/np.sqrt(2), gamma2)
         elif feat[i] == 1:
-            Ns_tot += 10**(p0[3 * i])*Voigt(Wave2V(wl, wl1), p0[2 + 3*i], p0[1 + 3*i]/np.sqrt(2), 0.00455)
+            Ns_tot += 10**(p0[3 * i])*Voigt(Wave2V(wl, wl1), p0[2 + 3*i], p0[1 + 3*i]/np.sqrt(2), gamma1)
         elif feat[i] == 2:
-            Nw_tot += 10**(p0[3 * i])*Voigt(Wave2V(wl, wl2), p0[2 + 3*i], p0[1 + 3*i]/np.sqrt(2), 0.00455)
+            Nw_tot += 10**(p0[3 * i])*Voigt(Wave2V(wl, wl2), p0[2 + 3*i], p0[1 + 3*i]/np.sqrt(2), gamma2)
     Ns = convolve(Ns_tot, lsf)
     Nw = convolve(Nw_tot, lsf)
     return Ns, Nw
@@ -227,6 +258,7 @@ def plot_features(wl, wl1, wl2, N1, N2, Ne1, Ne2, limits):
     plt.plot(Wave2V(wl, wl2), Ne2, '-m', label='Weak Error')
     plt.legend()
     plt.xlim(limits[0], limits[1])
+    #plt.ylim(-0.5e13, 1e13)
     plt.show()
 
 def remove_regions(strong_flag, weak_flag, wl, wl1, wl2, N1r, N2r, Ne1, Ne2):
@@ -250,7 +282,7 @@ def make_bins(v1, v2, Nv1, Nv2, Nve1, Nve2):
     Nv_sorted = Nv[idx]
     Nve_sorted = Nve[idx]
 
-    New_v = np.linspace(-400, 400, 101) # dv ~ 8
+    New_v = np.linspace(-500, 500, 126) # dv ~ 8
     indices = np.searchsorted(v_sorted, New_v)
     v_bins = np.split(v_sorted, indices)
     Nv_bins = np.split(Nv_sorted, indices)
@@ -323,3 +355,10 @@ def find_N(min, max, v_final, Nv_final):
     flag = (v > min) & (v < max)
     dv = np.mean(np.diff(v))
     return np.log10(np.sum(Nv[flag] * dv))
+
+def make_ten(p0):
+    l = len(p0) // 3
+    for i in range(l):
+        if p0[1 + (3 * i)] < 10:
+            p0[1 + (3 * i)] = 10
+    return p0

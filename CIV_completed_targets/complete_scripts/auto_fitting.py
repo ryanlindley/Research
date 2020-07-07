@@ -86,17 +86,19 @@ def model(p0, feat, wl, wl1, wl2, f1, f2, gamma1, gamma2, lsf):
     Ncomp = len(p0)//3
     for comp_i in range(Ncomp):
         N, b, vc = p0[comp_i*3: comp_i*3+3]
+        if np.abs(b) < 10:
+            b = 10
         if feat[comp_i] == 0:
-            m1 = vline(Wave2V(wl, wl1), [b/1.414, gamma1, N2tau(10**N, wl1, f1), vc, 1])
-            m2 = vline(Wave2V(wl, wl2), [b/1.414, gamma2, N2tau(10**N, wl2, f2), vc, 1])
+            m1 = vline(Wave2V(wl, wl1), [np.abs(b/1.414), gamma1, N2tau(10**N, wl1, f1), vc, 1])
+            m2 = vline(Wave2V(wl, wl2), [np.abs(b/1.414), gamma2, N2tau(10**N, wl2, f2), vc, 1])
             m*= m1 * m2
         elif feat[comp_i] == 1:
-            m1 = vline(Wave2V(wl, wl1), [b/1.414,  gamma1, N2tau(10**N, wl1, f1), vc, 1])
+            m1 = vline(Wave2V(wl, wl1), [np.abs(b/1.414),  gamma1, N2tau(10**N, wl1, f1), vc, 1])
             m2 = np.ones(wl.shape)
             m*= m1 * m2
         elif feat[comp_i] == 2:
             m1 = np.ones(wl.shape)
-            m2 = vline(Wave2V(wl, wl2), [b/1.414,  gamma2, N2tau(10**N, wl2, f2), vc, 1])
+            m2 = vline(Wave2V(wl, wl2), [np.abs(b/1.414),  gamma2, N2tau(10**N, wl2, f2), vc, 1])
             m*= m1 * m2
     m = convolve(m, lsf)
     return m

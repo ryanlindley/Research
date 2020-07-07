@@ -1,12 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[11]:
-
-
-#!/usr/bin/env python
-# coding: utf-8
-
 # In[1]:
 
 
@@ -27,15 +21,15 @@ for f in filenames:
 #print(CIV_targets)
 
 
-# In[388]:
+# In[3]:
 
 
-name = CIV_targets[16]
+name = CIV_targets[24]
 print(name)
 print(len(CIV_targets))
 
 
-# In[389]:
+# In[4]:
 
 
 directory = '/Users/ryanlindley/Research/CIV/' + name
@@ -43,7 +37,7 @@ os.chdir(directory)
 os.getcwd()
 
 
-# In[390]:
+# In[5]:
 
 
 wl1, f1, gamma1, elem, state = (1548.187, 0.19, 0.00324, 'C', 'IV')
@@ -54,16 +48,16 @@ wl, fl, fe, ctn = auto.np.loadtxt(path).transpose()
 lsf = auto.np.loadtxt('/Users/ryanlindley/Research/CIV.old_setup/CIV.lsf')
 
 
-# In[392]:
+# In[6]:
 
 
 new_ctn = auto.find_continuum(name, wl, fl, fe, ctn, [True]*len(wl))
 
-#ctn_flag = auto.mask_wl(wl,  [1547, 1548.5, 1550, 1551.2])  # add custom ctn if needed 
+#ctn_flag = auto.mask_wl(wl,   [1544.4, 1545.8, 1547, 1548.5, 1550.5, 1551])  # add custom ctn if needed 
 #manual_ctn = auto.find_continuum(name, wl, fl, fe, ctn, ctn_flag)
 
 
-# In[393]:
+# In[7]:
 
 
 def check_larger_continuum(name, wl, ctn):
@@ -71,13 +65,13 @@ def check_larger_continuum(name, wl, ctn):
     auto.plt.plot(spec[:,0], spec[:,1])
     auto.plt.plot(wl, ctn)
     auto.plt.xlim(1542, 1556)
-    auto.plt.ylim(0, 2e-14)
+    auto.plt.ylim(0, 0.4e-14)
     auto.plt.show
     
 #check_larger_continuum(name, wl, manual_ctn)
 
 
-# In[394]:
+# In[8]:
 
 
 #new_ctn = manual_ctn # only include when manual continuum us found
@@ -86,7 +80,7 @@ fn = fl / new_ctn
 fne = fe / new_ctn
 
 
-# In[376]:
+# In[9]:
 
 
 #chi, chi_mean = auto.find_chi(wl, fl, fe, new_ctn)
@@ -98,21 +92,20 @@ fne = fe / new_ctn
 #auto.plot_chi_histogram(new_chi, new_chi_mean)
 
 
-# In[399]:
+# In[10]:
 
 
-x0 = [13.5, 20.3, auto.Wave2V(1548, wl1)] + [13.5, 20.3, auto.Wave2V(1547.8, wl1)] + [13.3, 20.3, auto.Wave2V(1548.3, wl1)] + [13.3, 20.3, auto.Wave2V(1550.5, wl2)]# + [13, 20.3, auto.Wave2V(1551, wl2)] #+ [13, 20.3, auto.Wave2V(1551, wl2)] #+ [13, 20.3, auto.Wave2V(1548.7, wl1)]
-feat = [0, 0, 0, 2] #which features used to model 0 - both, 1 - strong, 2 - weak
+x0 = [13.5, 20.3, auto.Wave2V(1548, wl1)]  + [13.5, 20.3, auto.Wave2V(1548.6, wl1)] + [13.2, 20.3, auto.Wave2V(1550.4, wl2)] + [13, 20.3, auto.Wave2V(1552.6, wl2)] #+ [13, 20.3, auto.Wave2V(1552.5, wl2)]
+feat = [0, 0, 2, 2] #which features used to model 0 - both, 1 - strong, 2 - weak
 p0, cov, a, b, c = auto.leastsq(auto.fitting, x0, full_output=1, args=(feat, wl, wl1, wl2, f1, f2, gamma1, gamma2, lsf, fn, fne, [1547, 1553]))
 
 auto.plot_model(p0, feat, wl, fn, wl1, wl2, f1, f2, gamma1, gamma2, lsf, [1547, 1553]) #normally [1547, 1553]
 print(p0)
 
 
-# In[400]:
+# In[11]:
 
 
-p0[7] = 10
 N1, N2 = auto.make_features(p0, feat, wl, wl1, wl2, lsf, gamma1, gamma2)
 Ne1 = auto.nfle2Nev(fn, fne, f1, wl1)
 Ne2 = auto.nfle2Nev(fn, fne, f2, wl2)
@@ -122,54 +115,45 @@ auto.plot_features(wl, wl1, wl2, N1, N2, Ne1, Ne2, [-500, 500])
 print(p0)
 
 
-# In[401]:
+# In[12]:
 
 
 N1r, N2r = auto.add_residual(p0, N1, N2, feat, wl, wl1, wl2, f1, f2, gamma1, gamma2, lsf, fn)
 auto.plot_features(wl, wl1, wl2, N1r, N2r, Ne1, Ne2, [-500, 500])
 
 
-# In[405]:
+# In[19]:
 
 
 strong_flag = auto.mask_v(wl, wl1,[]) # add masking for any regions not to be used in combined data
-weak_flag = auto.mask_v(wl, wl2, [-160, 0])
+weak_flag = auto.mask_v(wl, wl2, [-100, -75])
 v1, v2, Nv1, Nv2, Nve1, Nve2 = auto.remove_regions(strong_flag, weak_flag, wl, wl1, wl2, N1r, N2r, Ne1, Ne2)
 
 v_bins, Nv_bins, Nve_bins = auto.make_bins(v1, v2, Nv1, Nv2, Nve1, Nve2)
 
 v_final, Nv_final, Nve_final =  auto.final_data(v_bins, Nv_bins, Nve_bins)
 
-auto.plot_final_data(wl, wl1, wl2, N1r, N2r, v_final, Nv_final, Nve_final, name, [-300, 300])
+auto.plot_final_data(wl, wl1, wl2, N1r, N2r, v_final, Nv_final, Nve_final, name, [-300, 400])
 
 
-# In[406]:
+# In[20]:
 
 
 data = auto.np.c_[v_final, Nv_final, Nve_final]
-CIV_regions = [[-240, -180], [-160, 100]]
-cont_regions = [[0, 50]]
+CIV_regions = [[-125, 100]]
+cont_regions = [[-100, -75], [350, 450]]
 
 auto.np.savetxt('CIV.data', data)
 auto.np.savetxt('CIV.regions', CIV_regions, fmt='%1.3i')
 auto.np.savetxt('contamintion.regions', cont_regions, fmt='%1.3i')
-auto.save_final_data_plot(wl, wl1, wl2, N1r, N2r, v_final, Nv_final, Nve_final, name, [-300, 300])
+auto.save_final_data_plot(wl, wl1, wl2, N1r, N2r, v_final, Nv_final, Nve_final, name, [-300, 400])
 auto.save_final_continuum_data(wl, fl, new_ctn, name)
 
 
+# In[15]:
+
+
 #remember to save file 
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
 
 
 # In[ ]:
